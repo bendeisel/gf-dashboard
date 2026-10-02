@@ -1,0 +1,84 @@
+id: gohighlevel-cli
+type: skill
+name: "GoHighLevel CLI"
+description: "Build GoHighLevel from the command line: contacts, workflows, native forms, round-robin calendars, funnels, landing pages, broadcast email campaigns, smart lists, contract templates, SaaS sub-account audits, and payments. Campaigns build as drafts; the CLI never sends."
+categories:
+  - lgj-exclusive
+  - automation
+  - development
+  - conversion
+tags:
+  - gohighlevel
+  - ghl
+  - crm
+  - workflows
+  - funnels
+  - email-marketing
+  - smart-lists
+  - automation
+icon: Building2
+path: skills/gohighlevel-cli
+files:
+  - .env.example
+  - .gitignore
+  - README.md
+  - SKILL.md
+  - builders/example-nurture-builder.py
+  - cli_anything/gohighlevel/__init__.py
+  - cli_anything/gohighlevel/__main__.py
+  - cli_anything/gohighlevel/core/__init__.py
+  - cli_anything/gohighlevel/gohighlevel_cli.py
+  - cli_anything/gohighlevel/skills/SKILL.md
+  - cli_anything/gohighlevel/utils/__init__.py
+  - cli_anything/gohighlevel/utils/checkout_probe.py
+  - cli_anything/gohighlevel/utils/contract_template_builder.py
+  - cli_anything/gohighlevel/utils/form_survey_builder.py
+  - cli_anything/gohighlevel/utils/funnel_page_builder.py
+  - cli_anything/gohighlevel/utils/ghl_client.py
+  - cli_anything/gohighlevel/utils/ghl_internal_client.py
+  - cli_anything/gohighlevel/utils/landing_page_design.py
+  - cli_anything/gohighlevel/utils/merge_fields.py
+  - cli_anything/gohighlevel/utils/repl_skin.py
+  - cli_anything/gohighlevel/utils/saas_audit.py
+  - cli_anything/gohighlevel/utils/saas_lifecycle.py
+  - cli_anything/gohighlevel/utils/workflow_builder.py
+  - docs/contracts.md
+  - docs/email-campaigns.md
+  - docs/funnel-page-internal-api.md
+  - docs/get-firebase-token.md
+  - docs/how-it-works.excalidraw
+  - docs/how-it-works.png
+  - docs/landing-page-design-system.md
+  - docs/landing-page-spec.md
+  - docs/reference-funnel-patterns.md
+  - docs/subaccount-audit.md
+  - docs/subaccount-lifecycle.md
+  - docs/subscriptions.md
+  - examples/contract-template.example.json
+  - examples/landing-page-kitchen-sink.example.json
+  - examples/landing-page.example.json
+  - ghl
+  - install.sh
+  - manifest.yaml
+  - setup.py
+  - tests/test_checkout_probe.py
+  - tests/test_contact_id_join.py
+  - tests/test_contract_templates.py
+  - tests/test_form_survey_safety.py
+  - tests/test_funnel_page_builder.py
+  - tests/test_ghl_client_retry.py
+  - tests/test_internal_token_refresh.py
+  - tests/test_landing_page_design.py
+  - tests/test_merge_fields.py
+  - tests/test_saas_audit.py
+  - tests/test_smartlist_filters.py
+  - tests/test_subaccount_lifecycle_safety.py
+  - tests/test_subscription_reads.py
+  - tests/test_version_single_source.py
+  - tests/test_workflow_put_preserves_sender.py
+  - tests/test_workflow_trigger_shapes.py
+version: "3.1.0"
+branch: LGJ-exclusive
+postInstall: 'cd "$HOME/.claude/skills/gohighlevel-cli" && bash install.sh'
+composesWell:
+  - browser-automation

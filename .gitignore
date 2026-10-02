@@ -15,7 +15,6 @@ metrics.config.json
 *.key
 
 # mounted-in on the server (not part of the repo)
-ghl-cli/
 ghl-profiles/
 claude-gf/
 
@@ -26,3 +25,9 @@ npm-debug.log*
 # never ship a tarball of the repo inside the repo
 gf-dashboard.tar.gz
 *.tar.gz
+
+# GHL CLI source lives in the repo; ignore its runtime build artifacts
+ghl-cli/.venv/
+ghl-cli/**/__pycache__/
+ghl-cli/*.egg-info/
+ghl-cli/.pytest_cache/

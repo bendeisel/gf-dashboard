@@ -1,0 +1,67 @@
+#!/bin/bash
+# GHL CLI wrapper — resolves a credential profile, then execs the CLI.
+#
+# Profile precedence:
+#   1. $GHL_PROFILE
+#   2. nearest .ghlprofile file, walking up from $PWD
+#   3. default_profile in $GHL_CONFIG_DIR/config
+# If none resolve we exit rather than guess — silently picking an account is
+# how you end up writing to the wrong sub-account.
+set -uo pipefail
+
+# Resolve this script's real directory, following symlinks (we're normally
+# invoked via ~/.local/bin/ghl), so we can find the sibling .venv.
+SRC="${BASH_SOURCE[0]}"
+while [ -L "$SRC" ]; do
+  DIR="$(cd -P "$(dirname "$SRC")" && pwd)"
+  SRC="$(readlink "$SRC")"
+  [[ $SRC != /* ]] && SRC="$DIR/$SRC"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SRC")" && pwd)"
+
+CONF_DIR="${GHL_CONFIG_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/ghl}"
+
+die() { printf 'ghl: %s\n' "$1" >&2; exit 2; }
+
+resolve_profile() {
+  if [ -n "${GHL_PROFILE:-}" ]; then
+    printf '%s' "$GHL_PROFILE"; return
+  fi
+  local d="$PWD"
+  while [ -n "$d" ] && [ "$d" != "/" ]; do
+    if [ -f "$d/.ghlprofile" ]; then
+      tr -d '[:space:]' < "$d/.ghlprofile"; return
+    fi
+    d="$(dirname "$d")"
+  done
+  if [ -f "$CONF_DIR/config" ]; then
+    sed -n 's/^default_profile=//p' "$CONF_DIR/config" | head -1 | tr -d '[:space:]'
+  fi
+}
+
+PROFILE="$(resolve_profile)"
+[ -n "$PROFILE" ] || die "no profile resolved. Set GHL_PROFILE, add a .ghlprofile file, or set default_profile in $CONF_DIR/config"
+
+ENV_FILE="$CONF_DIR/profiles/$PROFILE.env"
+[ -f "$ENV_FILE" ] || die "profile '$PROFILE' not found at $ENV_FILE"
+
+# Profile values are DEFAULTS: an explicitly-exported var wins, so
+# `GHL_LOCATION_ID=x ghl ...` behaves the way it reads. Sourcing the file
+# outright would silently discard that override.
+while IFS='=' read -r key val; do
+  case "$key" in ''|'#'*) continue ;; esac
+  key="${key#"${key%%[![:space:]]*}"}"   # ltrim
+  key="${key%"${key##*[![:space:]]}"}"   # rtrim
+  [ -n "$key" ] || continue
+  if [ -z "${!key:-}" ]; then
+    export "$key=$val"
+  fi
+done < "$ENV_FILE"
+export GHL_PROFILE="$PROFILE"
+
+[ -n "${GHL_API_KEY:-}" ] || die "profile '$PROFILE' has no GHL_API_KEY"
+[ -n "${GHL_LOCATION_ID:-}" ] || die "profile '$PROFILE' has no GHL_LOCATION_ID"
+
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/.venv/bin/activate"
+exec cli-anything-gohighlevel "$@"

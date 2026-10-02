@@ -1,0 +1,41 @@
+{
+  "name": "PR Authority Landing Page",
+  "path": "/pr-authority",
+  "primaryColor": "#188bf6",
+  "seo": {
+    "title": "Build Your Authority With Earned Media",
+    "description": "See whether Otter PR is a fit for your brand.",
+    "keywords": "public relations, earned media",
+    "author": "Otter PR",
+    "customMeta": [],
+    "canonicalMeta": []
+  },
+  "sections": [
+    {
+      "name": "Hero",
+      "background": "var(--white)",
+      "paddingTop": 72,
+      "paddingBottom": 72,
+      "rows": [
+        {
+          "columns": [
+            {
+              "width": 60,
+              "elements": [
+                {"type": "heading", "text": "Become the Name Your Market Trusts", "fontSize": 52, "mobileFontSize": 36},
+                {"type": "paragraph", "text": "Strategic media coverage that turns your expertise into authority.", "fontSize": 20},
+                {"type": "divider", "width": "30%", "color": "var(--primary)"}
+              ]
+            },
+            {
+              "width": 40,
+              "elements": [
+                {"type": "image", "url": "https://storage.googleapis.com/msgsndr/826eXcwGZYPxCNNYCutx/media/a79cafe2-015b-492a-bcd0-01b7bea70d16.png", "alt": "Otter PR", "width": "100%"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

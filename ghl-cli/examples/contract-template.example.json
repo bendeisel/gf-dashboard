@@ -1,0 +1,58 @@
+{
+  "name": "Client Services Agreement",
+  "fields": [
+    {
+      "type": "date",
+      "page": 1,
+      "fieldId": "company_signed_date",
+      "recipient": "assignedSender",
+      "entityName": "users",
+      "placeholder": "Company date",
+      "required": true,
+      "top": 650,
+      "left": 48
+    },
+    {
+      "type": "signature",
+      "page": 1,
+      "fieldId": "company_signature",
+      "recipient": "assignedSender",
+      "entityName": "users",
+      "label": "Company signature",
+      "required": true,
+      "top": 692,
+      "left": 48
+    },
+    {
+      "type": "name",
+      "page": 1,
+      "fieldId": "contractor_full_name",
+      "recipient": "assignedContact",
+      "entityName": "contacts",
+      "required": true,
+      "top": 790,
+      "left": 48,
+      "width": 240
+    },
+    {
+      "type": "date",
+      "page": 1,
+      "fieldId": "contractor_signed_date",
+      "recipient": "assignedContact",
+      "entityName": "contacts",
+      "required": true,
+      "top": 832,
+      "left": 48
+    },
+    {
+      "type": "signature",
+      "page": 1,
+      "fieldId": "contractor_signature",
+      "recipient": "assignedContact",
+      "entityName": "contacts",
+      "required": true,
+      "top": 874,
+      "left": 48
+    }
+  ]
+}
