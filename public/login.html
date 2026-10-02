@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Growth Factor</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body class="login-body">
+<form id="f" class="login-card">
+  <div class="brand-mark">GF</div>
+  <h1>Growth Factor</h1>
+  <p class="muted">Command dashboard. Sign in to continue.</p>
+  <label class="field">Password
+    <input id="pw" type="password" autocomplete="current-password" autofocus required>
+  </label>
+  <div id="err" class="err" role="alert"></div>
+  <button class="btn primary" type="submit">Sign in</button>
+</form>
+<script>
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = document.getElementById('err');
+  err.textContent = '';
+  const r = await fetch('/api/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: document.getElementById('pw').value }),
+  });
+  if (r.ok) location.href = '/';
+  else err.textContent = (await r.json().catch(() => ({}))).error || 'Sign in failed.';
+});
+</script>
+</body>
+</html>

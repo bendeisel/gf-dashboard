@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Growth Factor Dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/vendor/xterm/css/xterm.css">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="side" id="side">
+    <div class="brand">
+      <div class="brand-mark">GF</div>
+      <div><div class="brand-name">Growth Factor</div><div class="brand-sub">Command Dashboard</div></div>
+    </div>
+    <nav>
+      <div class="nav-label">Workspace</div>
+      <a href="#/terminals" data-route="terminals"><svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6M12 19h8"/></svg>Terminals</a>
+      <a href="#/skills" data-route="skills"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Skills</a>
+      <div class="nav-label">Tools</div>
+      <a href="#/ghl" data-route="ghl"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>GHL CLI</a>
+      <div class="nav-label">Business</div>
+      <a href="#/metrics" data-route="metrics"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg>Metrics</a>
+    </nav>
+    <div class="grow"></div>
+    <button class="side-foot" id="logout">Sign out</button>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <button class="burger" id="burger" aria-label="Menu">☰</button>
+      <div class="crumbs"><span>Dashboard</span><span>/</span><b id="crumb">Terminals</b></div>
+      <div class="top-actions" id="topActions"></div>
+    </header>
+
+    <section id="view-terminals" class="view">
+      <div class="term-bar">
+        <div class="seg" id="layoutSeg" role="group" aria-label="Layout">
+          <button data-l="auto" class="on" title="Auto grid">Auto</button><button data-l="1" title="1 column">1</button><button data-l="2" title="2 columns">2</button><button data-l="3" title="3 columns">3</button>
+        </div>
+        <div class="grow"></div>
+        <label class="dir-pick">Folder <select id="dirPick" title="Folder the new session starts in"></select></label>
+        <button class="btn" id="newShell">+ Shell</button>
+        <button class="btn primary" id="newClaude">+ Claude</button>
+      </div>
+      <div id="termGrid" class="term-grid"></div>
+      <div id="termEmpty" class="empty">
+        <h2>No terminals open</h2>
+        <p>Start a Claude session or a plain shell. Sessions keep running if you refresh or close the tab.</p>
+        <button class="btn primary" id="emptyClaude">Open Claude</button>
+      </div>
+    </section>
+
+    <section id="view-skills" class="view page" hidden>
+      <div class="eyebrow">Skills library</div>
+      <h1>Run a task</h1>
+      <p class="lede">Each card starts a Claude session that already knows the rules and skills for the job. Add the details and any images, then launch.</p>
+      <div class="filters">
+        <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input id="skillSearch" type="search" placeholder="Search skills"></label>
+        <select id="skillCat" aria-label="Category"></select>
+      </div>
+      <div id="skillGrid" class="cards"></div>
+    </section>
+
+    <section id="view-ghl" class="view page" hidden>
+      <div class="eyebrow">Tools</div>
+      <h1>GoHighLevel CLI</h1>
+      <p class="lede">Build and manage GHL from a terminal: contacts, workflows, forms, calendars, funnels, audits. Pick a starting point.</p>
+      <div id="ghlGrid" class="cards"></div>
+    </section>
+
+    <section id="view-metrics" class="view page" hidden>
+      <div class="eyebrow">Business</div>
+      <h1>Metrics</h1>
+      <p class="lede">Per-business numbers will live here once each data source is connected.</p>
+      <div class="cards">
+        <div class="card"><h3>Growth Factor</h3><p class="muted">Leads, bookings, revenue, MRR.</p><span class="chip">Not connected</span></div>
+        <div class="card"><h3>Nashville MMA</h3><p class="muted">Members, trials, past-due.</p><span class="chip">Not connected</span></div>
+        <div class="card"><h3>Furst Place MMA</h3><p class="muted">Members, trials, past-due.</p><span class="chip">Not connected</span></div>
+        <div class="card"><h3>Fighters Nashville</h3><p class="muted">Leads, trials, members.</p><span class="chip">Not connected</span></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- skill launcher -->
+<dialog id="launch" class="modal">
+  <form method="dialog" id="launchForm">
+    <div class="eyebrow" id="lCat"></div>
+    <h2 id="lTitle"></h2>
+    <p class="muted" id="lDesc"></p>
+    <textarea id="lInput" rows="6"></textarea>
+    <label class="dir-pick" style="margin-top:10px">Folder <select id="lDir"></select></label>
+    <div class="attach">
+      <label class="btn small">Attach images / files<input id="lFiles" type="file" multiple hidden></label>
+      <span id="lList" class="muted"></span>
+    </div>
+    <div class="err" id="lErr" role="alert"></div>
+    <div class="modal-actions">
+      <button class="btn" value="cancel" id="lCancel">Cancel</button>
+      <button class="btn primary" id="lGo" value="go">Start session</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" hidden></div>
+<script src="/vendor/xterm/lib/xterm.js"></script>
+<script src="/vendor/xterm-fit/lib/addon-fit.js"></script>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

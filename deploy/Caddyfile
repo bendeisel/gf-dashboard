@@ -1,0 +1,4 @@
+dashboard.growth-factor.ai {
+    encode gzip
+    reverse_proxy 127.0.0.1:3100
+}

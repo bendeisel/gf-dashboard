@@ -1,0 +1,7 @@
+node_modules
+uploads
+workspace
+ghl-cli
+ghl-profiles
+.env
+claude-gf

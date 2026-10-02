@@ -1,0 +1,24 @@
+services:
+  dashboard:
+    build: .
+    container_name: gf-dashboard
+    restart: unless-stopped
+    env_file: .env
+    # localhost only; the reverse proxy (Caddy) is the only thing exposed to the internet
+    ports: ["127.0.0.1:3100:3100"]
+    volumes:
+      - gf_home:/home/gf            # keeps shell history across rebuilds
+      # gf Claude account (the "gf alias" = CLAUDE_CONFIG_DIR). Copy the account dir
+      # to ./claude-gf on the VPS, or run `claude` once inside the container to log in.
+      - ./claude-gf:/home/gf/.config/claude-gf
+      - ./workspace:/workspace      # repos and project files the terminals work in
+      - ./uploads:/uploads
+      - ./skills:/app/skills:ro     # edit skill .md files on the host; no rebuild needed
+      # GHL CLI skill + credentials (create on the VPS, see README):
+      - ./ghl-cli:/opt/ghl-cli
+      - ./ghl-profiles:/home/gf/.config/ghl
+    environment:
+      GHL_CLI_DIR: /opt/ghl-cli
+      CLAUDE_CONFIG_DIR: /home/gf/.config/claude-gf   # terminals' `claude` uses the gf account
+volumes:
+  gf_home:

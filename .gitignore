@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# runtime data (never commit)
+uploads/
+workspace/
+
+# secrets & local config (never commit)
+.env
+*.env
+!.env.example
+.credentials.json
+metrics.config.json
+*.pem
+*.key
+
+# mounted-in on the server (not part of the repo)
+ghl-cli/
+ghl-profiles/
+claude-gf/
+
+# misc
+.DS_Store
+npm-debug.log*
+
+# never ship a tarball of the repo inside the repo
+gf-dashboard.tar.gz
+*.tar.gz

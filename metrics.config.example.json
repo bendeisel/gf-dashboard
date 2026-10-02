@@ -1,0 +1,10 @@
+{
+  "_comment": "Copy to metrics.config.json (gitignored) and fill in the real locationIds. Tokens come from env vars named by tokenEnv — never inline them here.",
+  "apiBase": "https://services.leadconnectorhq.com",
+  "businesses": [
+    { "key": "demo",     "name": "Growth Factor (Demo)", "locationId": "<DEMO_LOCATION_ID>",     "tokenEnv": "GHL_DEMO_TOKEN" },
+    { "key": "fpmma",    "name": "Furst Place MMA",       "locationId": "<FPMMA_LOCATION_ID>",    "tokenEnv": "GHL_FPMMA_TOKEN" },
+    { "key": "fighters", "name": "Fighters Boxing Gym",   "locationId": "<FIGHTERS_LOCATION_ID>", "tokenEnv": "GHL_FIGHTERS_TOKEN" },
+    { "key": "nmma",     "name": "Nashville MMA",         "locationId": "<NMMA_LOCATION_ID>",     "tokenEnv": "GHL_NMMA_TOKEN" }
+  ]
+}
