@@ -22,7 +22,8 @@ echo "[update] rebuilding container"
 # owned by it or uploads / the Claude login / GHL profiles fail to read-write.
 if [ "$(id -u)" = "0" ]; then
   mkdir -p claude-gf ghl-profiles workspace uploads
-  chown -R 1001:1001 claude-gf ghl-profiles workspace uploads 2>/dev/null || true
+  # ghl-cli is tracked repo content but the container (UID 1001) must write its .venv there
+  chown -R 1001:1001 claude-gf ghl-profiles workspace uploads ghl-cli 2>/dev/null || true
 fi
 docker compose up -d --build
 

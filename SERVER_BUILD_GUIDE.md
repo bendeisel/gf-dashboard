@@ -124,6 +124,16 @@ social-recreate-video, website-build, website-deploy. Keep the house rules in ev
 skill: **drafts only, never send/publish; SMS-only where relevant; never touch live contacts;
 build in Demo and ship via Snapshot.**
 
+## 5b. GHL CLI setup notes (learned in deploy)
+
+- The CLI now lives **in this repo** at `ghl-cli/` (no separate clone). It ships source
+  only; build its venv **inside the container**: `docker exec gf-dashboard sh -lc 'cd /opt/ghl-cli && bash install.sh'`.
+- `ghl-cli` must be owned by UID 1001 on the host so the container can write `.venv`
+  (`update.sh` chowns it).
+- Profiles mount: `./ghl-profiles` → `/home/gf/.config/ghl`, and the CLI expects
+  **`profiles/<name>.env` plus a `config`** inside it, i.e.
+  `ghl-profiles/config` (`default_profile=demo`) and `ghl-profiles/profiles/demo.env`.
+
 ## 6. GHL CLI
 
 Mount the `gohighlevel-cli` skill folder to `/opt/ghl-cli` and the profiles
