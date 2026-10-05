@@ -9,6 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadSkills } from './skills.js';
+import { getMetrics } from './metrics.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const env = process.env;
@@ -89,6 +90,8 @@ function childEnv() {
   const e = { ...env, TERM: 'xterm-256color', COLORTERM: 'truecolor' };
   // our own secrets never reach a terminal
   for (const k of ['DASHBOARD_PASSWORD', 'DASHBOARD_USERS', 'SESSION_SECRET', 'AUTH_DISABLED', 'COOKIE_SECURE']) delete e[k];
+  // metrics tokens (GHL_DEMO_TOKEN, GHL_<GYM>_TOKEN) stay server-side, never in a terminal
+  for (const k of Object.keys(e)) if (/^GHL_.*_TOKEN$/.test(k)) delete e[k];
   // strip the Claude Code runtime vars of the server's own parent session, so a
   // spawned `claude` starts fresh instead of thinking it's a nested child session.
   for (const k of Object.keys(e)) {
@@ -187,6 +190,10 @@ app.get('/api/skills', (_req, res) => {
   res.json({ categories, skills: skills.map(({ prompt, cwd, ...s }) => s) });
 });
 
+app.get('/api/metrics', async (_req, res) => {
+  try { res.json({ businesses: await getMetrics(root) }); }
+  catch (e) { res.status(500).json({ error: 'metrics unavailable' }); }
+});
 app.get('/api/terminals', (_req, res) => res.json([...terms.values()].map(describe)));
 app.post('/api/terminals', (req, res) => {
   const { kind = 'shell', skill, input = '', attachments = [], cwd: reqCwd } = req.body ?? {};

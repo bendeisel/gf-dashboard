@@ -13,7 +13,8 @@ services:
       - ./claude-gf:/home/gf/.config/claude-gf
       - ./workspace:/workspace      # repos and project files the terminals work in
       - ./uploads:/uploads
-      - ./skills:/app/skills:ro     # edit skill .md files on the host; no rebuild needed
+      - ./skills:/app/skills:ro
+      - ./metrics.config.json:/app/metrics.config.json:ro     # edit skill .md files on the host; no rebuild needed
       # GHL CLI skill + credentials (create on the VPS, see README):
       - ./ghl-cli:/opt/ghl-cli
       - ./ghl-profiles:/home/gf/.config/ghl

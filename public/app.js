@@ -263,6 +263,20 @@ $('#launchForm').addEventListener('submit', async (e) => {
   go.disabled = false;
 });
 
+/* ---------------- metrics ---------------- */
+function metricCard(b) {
+  if (b.needsToken) return `<div class="card"><h3>${esc(b.name)}</h3><p class="muted">Add this location's API token (Private Integration) to show live numbers.</p><span class="chip">Add API token</span></div>`;
+  if (b.error) return `<div class="card"><h3>${esc(b.name)}</h3><p class="muted">${esc(b.error)}</p><span class="chip">Error</span></div>`;
+  const tiles = b.tiles.map((t) => `<div class="tile"><div class="tile-v">${Number(t.value).toLocaleString()}</div><div class="tile-l">${esc(t.label)}</div></div>`).join('');
+  return `<div class="card"><h3>${esc(b.name)}</h3><div class="tiles">${tiles}</div></div>`;
+}
+async function loadMetrics() {
+  try {
+    const { businesses } = await api('/api/metrics');
+    $('#metricsGrid').innerHTML = businesses.map(metricCard).join('') || '<p class="muted">No businesses configured.</p>';
+  } catch (e) { $('#metricsGrid').innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
+}
+
 /* ---------------- routing ---------------- */
 const titles = { terminals: 'Terminals', skills: 'Skills', ghl: 'GHL CLI', metrics: 'Metrics' };
 function route() {
@@ -273,6 +287,7 @@ function route() {
   $('#crumb').textContent = titles[name];
   $('#side').classList.remove('open');
   if (name === 'terminals') requestAnimationFrame(fitAll);
+  if (name === 'metrics') loadMetrics();
 }
 window.addEventListener('hashchange', route);
 $('#burger').onclick = () => $('#side').classList.toggle('open');
