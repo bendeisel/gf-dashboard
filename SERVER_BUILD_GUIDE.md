@@ -205,6 +205,22 @@ Wire Demo first as a live proof (its token is the demo profile `GHL_API_KEY` →
 5. **Docker/Hermes:** run this in its **own container** (it already is). If Hermes runs on the
    same VPS, keep it in a separate container/port — don't share.
 
+## 8b. Mounted-dir permissions (UID 1001) — IMPORTANT
+
+The container runs as the non-root user `gf`, which is **UID 1001**. Every
+bind-mounted dir the app writes to must be owned by 1001 on the host, or you get
+silent failures (uploads can't be written, `claude` can't read/refresh its creds,
+the GHL CLI can't read profiles). After creating the mount dirs, run once (and
+`update.sh` also does this each deploy when run as root):
+
+```
+sudo chown -R 1001:1001 claude-gf ghl-profiles workspace uploads
+```
+
+The simplest way to populate `claude-gf` correctly is to log in **inside** the
+container (`docker exec -it gf-dashboard claude`) — the files are then written as
+1001 automatically, no chown needed for that dir.
+
 ## 9. Security — do not regress
 
 - A login here = a shell inside the container. Long password; login is rate-limited
