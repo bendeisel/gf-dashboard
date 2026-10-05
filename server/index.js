@@ -15,6 +15,13 @@ const env = process.env;
 
 const PORT = Number(env.PORT || 3100);
 const PASSWORD = env.DASHBOARD_PASSWORD;
+// Named logins: DASHBOARD_USERS="ben:pass,lorenz:pass". Falls back to the single
+// DASHBOARD_PASSWORD (username optional) when unset.
+const USERS = new Map(
+  (env.DASHBOARD_USERS || '').split(',').map((p) => p.trim()).filter(Boolean)
+    .map((pair) => { const i = pair.indexOf(':'); return [pair.slice(0, i).trim().toLowerCase(), pair.slice(i + 1)]; })
+    .filter(([u, p]) => u && p)
+);
 const SECRET = env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const SECURE_COOKIE = env.COOKIE_SECURE === '1';
 const WORKDIR = env.WORKDIR || os.homedir();
@@ -27,8 +34,8 @@ const SESSION_TTL_MS = 7 * 24 * 3600 * 1000;
 
 // Local testing only: no login, and the server binds to 127.0.0.1 so nothing else can reach it.
 const NO_AUTH = env.AUTH_DISABLED === '1';
-if (!PASSWORD && !NO_AUTH) {
-  console.error('DASHBOARD_PASSWORD is required. This dashboard exposes a shell; it will not start without one.');
+if (!PASSWORD && !USERS.size && !NO_AUTH) {
+  console.error('Set DASHBOARD_USERS or DASHBOARD_PASSWORD. This dashboard exposes a shell; it will not start without a login.');
   process.exit(1);
 }
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -40,19 +47,36 @@ const safeEq = (a, b) => {
   const hb = crypto.createHash('sha256').update(String(b)).digest();
   return crypto.timingSafeEqual(ha, hb);
 };
-const makeToken = () => {
+const makeToken = (user = '') => {
   const exp = String(Date.now() + SESSION_TTL_MS);
-  return `${exp}.${sign(exp)}`;
+  const u = Buffer.from(user).toString('base64url');
+  return `${exp}.${u}.${sign(exp + '.' + u)}`;
 };
+// returns the username (string, may be '') if valid, else false
 const validToken = (t) => {
   if (!t) return false;
-  const [exp, sig] = t.split('.');
-  if (!exp || !sig || !safeEq(sig, sign(exp))) return false;
-  return Number(exp) > Date.now();
+  const [exp, u, sig] = t.split('.');
+  if (!exp || u === undefined || !sig || !safeEq(sig, sign(exp + '.' + u))) return false;
+  if (Number(exp) <= Date.now()) return false;
+  try { return Buffer.from(u, 'base64url').toString() || ''; } catch { return ''; }
+};
+// checks credentials; returns the resolved username or null
+const checkLogin = (username, password) => {
+  const u = String(username || '').trim().toLowerCase();
+  if (USERS.size) {
+    const stored = USERS.get(u);
+    return stored !== undefined && safeEq(password ?? '', stored) ? u : null;
+  }
+  // single-password mode: username optional, any value allowed
+  return PASSWORD && safeEq(password ?? '', PASSWORD) ? (u || 'user') : null;
 };
 const parseCookies = (h = '') =>
   Object.fromEntries(h.split(';').map((c) => c.trim().split(/=(.*)/s).slice(0, 2)).filter(([k]) => k));
-const authed = (req) => NO_AUTH || validToken(parseCookies(req.headers.cookie).gf_session);
+const authUser = (req) => {
+  if (NO_AUTH) return 'local';
+  return validToken(parseCookies(req.headers.cookie).gf_session);
+};
+const authed = (req) => authUser(req) !== false;
 
 const fails = new Map(); // ip -> {n, until}
 const clientIp = (req) => req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
@@ -64,7 +88,7 @@ const terms = new Map();
 function childEnv() {
   const e = { ...env, TERM: 'xterm-256color', COLORTERM: 'truecolor' };
   // our own secrets never reach a terminal
-  for (const k of ['DASHBOARD_PASSWORD', 'SESSION_SECRET', 'AUTH_DISABLED', 'COOKIE_SECURE']) delete e[k];
+  for (const k of ['DASHBOARD_PASSWORD', 'DASHBOARD_USERS', 'SESSION_SECRET', 'AUTH_DISABLED', 'COOKIE_SECURE']) delete e[k];
   // strip the Claude Code runtime vars of the server's own parent session, so a
   // spawned `claude` starts fresh instead of thinking it's a nested child session.
   for (const k of Object.keys(e)) {
@@ -114,15 +138,16 @@ app.post('/api/login', (req, res) => {
   const ip = clientIp(req);
   const f = fails.get(ip);
   if (f && f.n >= 5 && f.until > Date.now()) return res.status(429).json({ error: 'Too many attempts. Try again in a few minutes.' });
-  if (!safeEq(req.body?.password ?? '', PASSWORD)) {
+  const user = checkLogin(req.body?.username, req.body?.password);
+  if (!user) {
     fails.set(ip, { n: (f && f.until > Date.now() ? f.n : 0) + 1, until: Date.now() + 15 * 60 * 1000 });
-    return res.status(401).json({ error: 'Wrong password.' });
+    return res.status(401).json({ error: USERS.size ? 'Wrong username or password.' : 'Wrong password.' });
   }
   fails.delete(ip);
-  res.cookie('gf_session', makeToken(), {
+  res.cookie('gf_session', makeToken(user), {
     httpOnly: true, sameSite: 'strict', secure: SECURE_COOKIE, maxAge: SESSION_TTL_MS, path: '/',
   });
-  res.json({ ok: true });
+  res.json({ ok: true, user });
 });
 app.post('/api/logout', (_req, res) => { res.clearCookie('gf_session', { path: '/' }); res.json({ ok: true }); });
 
@@ -136,7 +161,7 @@ app.use((req, res, next) => {
   res.redirect('/login');
 });
 
-app.get('/api/me', (_req, res) => res.json({ ok: true }));
+app.get('/api/me', (req, res) => res.json({ ok: true, user: authUser(req) || 'user', multiuser: USERS.size > 0 }));
 app.get('/api/config', (_req, res) => res.json({ workdir: WORKDIR, maxPanes: MAX_PANES }));
 
 // project folders the terminals can start in (immediate subdirs of WORKDIR, plus WORKDIR itself)

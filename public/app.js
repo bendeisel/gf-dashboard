@@ -281,6 +281,7 @@ $('#logout').onclick = async () => { await api('/api/logout', { method: 'POST' }
 /* ---------------- boot ---------------- */
 (async () => {
   route();
+  api('/api/me').then((m) => { if (m.user) $('#logout').textContent = `Sign out · ${m.user}`; }).catch(() => {});
   await Promise.all([loadSkills().catch(() => {}), loadDirs().catch(() => {})]);
   const existing = await api('/api/terminals').catch(() => []);
   existing.forEach(addPane);
