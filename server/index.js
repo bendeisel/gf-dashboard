@@ -29,6 +29,9 @@ const WORKDIR = env.WORKDIR || os.homedir();
 const SKILLS_DIR = env.SKILLS_DIR || path.join(root, 'skills');
 const UPLOAD_DIR = env.UPLOAD_DIR || path.join(root, 'uploads');
 const CLAUDE_CMD = env.CLAUDE_CMD || 'claude';
+// default model for Claude panes/skills; override with DASHBOARD_CLAUDE_MODEL
+const CLAUDE_MODEL = env.DASHBOARD_CLAUDE_MODEL || 'claude-opus-5-5';
+const modelArgs = CLAUDE_MODEL ? ['--model', CLAUDE_MODEL] : [];
 const MAX_PANES = Number(env.MAX_PANES || 12);
 const SCROLLBACK_BYTES = 200_000;
 const SESSION_TTL_MS = 7 * 24 * 3600 * 1000;
@@ -204,7 +207,7 @@ app.post('/api/terminals', (req, res) => {
     if (kind === 'shell') {
       spec = { kind, title: `Shell${suffix}`, file: env.SHELL || '/bin/bash', args: [], cwd: pickedCwd };
     } else if (kind === 'claude') {
-      spec = { kind, title: `Claude${suffix}`, file: CLAUDE_CMD, args: [], cwd: pickedCwd };
+      spec = { kind, title: `Claude${suffix}`, file: CLAUDE_CMD, args: [...modelArgs], cwd: pickedCwd };
     } else if (kind === 'skill') {
       const s = loadSkills(SKILLS_DIR).skills.find((x) => x.slug === skill);
       if (!s) return res.status(404).json({ error: 'Unknown skill' });
@@ -214,7 +217,7 @@ app.post('/api/terminals', (req, res) => {
       if (String(input).trim()) prompt += `\n\n---\nRequest from the user:\n${String(input).trim()}`;
       if (files.length) prompt += `\n\nAttached files (read them as needed):\n${files.map((f) => `- ${f}`).join('\n')}`;
       // argv, not a shell string: no injection through prompt text
-      spec = { kind, title: s.title, file: CLAUDE_CMD, args: [prompt], cwd: s.cwd ? resolveCwd(s.cwd) : pickedCwd };
+      spec = { kind, title: s.title, file: CLAUDE_CMD, args: [...modelArgs, prompt], cwd: s.cwd ? resolveCwd(s.cwd) : pickedCwd };
     } else {
       return res.status(400).json({ error: 'Unknown kind' });
     }
