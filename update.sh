@@ -5,6 +5,22 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Keep the dashboard's Claude login fresh from the server's own (actively-used) login,
+# so panes never fall back to "Please run /login". Runs every tick, even on no-op pulls.
+# SRC_CLAUDE_CREDS defaults to the root login; override in the environment if needed.
+SRC_CLAUDE_CREDS="${SRC_CLAUDE_CREDS:-/root/.claude/.credentials.json}"
+if [ -f "$SRC_CLAUDE_CREDS" ] && [ -d claude-gf ]; then
+  SRC="$SRC_CLAUDE_CREDS" python3 - <<'PY' 2>/dev/null && { chown 1001:1001 claude-gf/.credentials.json 2>/dev/null || true; chmod 600 claude-gf/.credentials.json 2>/dev/null || true; } || true
+import json, os
+src = os.environ["SRC"]; dst = "claude-gf/.credentials.json"
+root = json.load(open(src))
+gf = json.load(open(dst)) if os.path.exists(dst) else {}
+if "claudeAiOauth" in root:
+    gf["claudeAiOauth"] = root["claudeAiOauth"]   # fresh account token; keeps mcpOAuth intact
+    json.dump(gf, open(dst, "w"))
+PY
+fi
+
 branch="$(git rev-parse --abbrev-ref HEAD)"
 before="$(git rev-parse HEAD)"
 git fetch --quiet origin "$branch"
