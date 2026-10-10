@@ -4,7 +4,7 @@ FROM node:20-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
       python3 python3-venv python3-pip build-essential git curl ca-certificates openssh-client less \
     && rm -rf /var/lib/apt/lists/* \
-    && npm install -g @anthropic-ai/claude-code
+    && npm install -g @anthropic-ai/claude-code@2.1.296
 
 # run as a normal user, never root
 RUN useradd -m -s /bin/bash gf && mkdir -p /app /workspace /uploads && chown -R gf:gf /app /workspace /uploads
