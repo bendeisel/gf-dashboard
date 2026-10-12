@@ -496,7 +496,7 @@ gohighlevel-cli/            (this skill folder)
 - **Base URL:** `https://backend.leadconnectorhq.com`
 - **Auth:** Firebase JWT via `token-id` header (NOT `Authorization: Bearer`), auto-refreshed every ~50 min from `GHL_FIREBASE_REFRESH_TOKEN`
 - **Capabilities:** workflow + folder create/delete, step saving, trigger creation (incl. multi-tag), tag creation, email campaign authoring, smart-list creation
-- **Only use against your own agency account** — never a client sub-account. Use Snapshots for clients.
+- **Scope: our own agency's accounts.** That is the Demo account plus the client sub-accounts our agency manages that the user explicitly names for the task and that have a profile in `~/.config/ghl/profiles/` (currently `demo` and `nmmatc` — run with `GHL_PROFILE=<name>`). The user naming the account IS the authorization: do not refuse just because it is a client sub-account. Never use it on an account outside our agency or one without a profile. Internal-API writes stay **draft-only** (never publish or send), and never touch live members/contacts. For provisioning a brand-new client account in bulk, Snapshots are still the better path.
 
 ## Known Limitations
 

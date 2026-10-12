@@ -250,6 +250,7 @@ select { height: 40px; padding: 0 12px; border: 1px solid var(--border); border-
 .pane-head .title { cursor: default; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e9e2d7; }
 .pane-head button { background: transparent; border: 0; color: var(--side-text); width: 28px; height: 28px; border-radius: var(--r-xs); cursor: pointer; font-size: 14px; display: grid; place-items: center; transition: background var(--dur-1), color var(--dur-1); }
 .pane-head button:hover { background: #2a2420; color: #fff; }
+.pane-head button.txt { width: auto; padding: 0 9px; font-size: 11px; font-weight: 700; letter-spacing: .02em; }
 .pane-body { flex: 1; min-height: 0; padding: 6px 4px 4px 8px; }
 .pane.drop::after { content: 'Drop to upload'; position: absolute; inset: 36px 0 0; background: rgba(230,107,58,.18); border: 2px dashed var(--accent); display: grid; place-items: center; color: #fff; font-weight: 800; pointer-events: none; }
 

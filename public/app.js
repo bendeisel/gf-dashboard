@@ -128,6 +128,34 @@ function connect(p, attempt = 0) {
   };
 }
 
+/* ---- clipboard helpers (terminals) ---- */
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.append(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch {}
+    ta.remove(); return ok;
+  }
+}
+function bufferText(term) {
+  const b = term.buffer.active, out = [];
+  for (let i = 0; i < b.length; i++) out.push(b.getLine(i)?.translateToString(true) ?? '');
+  return out.join('\n').replace(/\s+$/, '');
+}
+async function termCopy(p) {
+  const sel = p.term.getSelection();
+  const text = sel || bufferText(p.term);
+  if (!text) return toast('Nothing to copy yet.');
+  toast((await copyText(text)) ? (sel ? 'Copied selection.' : 'Copied the whole terminal output.') : 'The browser blocked copying.');
+}
+async function termPaste(p) {
+  try { const t = await navigator.clipboard.readText(); if (t) p.term.paste(t); }
+  catch { toast('Allow clipboard access for this site, or press Ctrl/Cmd+V.'); }
+  p.term.focus();
+}
+
 const KIND_LABEL = { claude: 'Claude', shell: 'Shell', skill: 'Skill' };
 function addPane(info) {
   if (panes.has(info.id)) return;
@@ -138,12 +166,15 @@ function addPane(info) {
   el.innerHTML = `<div class="pane-head"><span class="dot" title="Connected"></span>
     <span class="badge ${esc(kind)}">${esc(badge)}</span>
     <span class="grow title" title="Double-click to rename">${esc(info.title)}</span>
+    <button class="txt" data-a="copy" title="Copy the selected text, or the whole output if nothing is selected">Copy</button>
+    <button class="txt" data-a="paste" title="Paste from your clipboard">Paste</button>
     <button data-a="focus" title="Maximize / restore" aria-label="Maximize">⤢</button>
     <button data-a="close" title="Close session" aria-label="Close session">✕</button></div><div class="pane-body"></div>`;
   $('#termGrid').append(el);
 
   const term = new Terminal({
     fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 13, cursorBlink: true, scrollback: 5000,
+    macOptionClickForcesSelection: true,
     theme: { background: '#14110F', foreground: '#EAE4DA', cursor: '#E66B3A', selectionBackground: '#5a3a2a' },
   });
   const fit = new FitAddon.FitAddon();
@@ -154,8 +185,22 @@ function addPane(info) {
 
   term.onData((d) => sendTo(p, d));
   term.attachCustomKeyEventHandler((e) => {
-    if (e.type === 'keydown' && e.key === 'Enter' && e.shiftKey) { sendTo(p, '\x1b\r'); return false; }
+    if (e.type !== 'keydown') return true;
+    if (e.key === 'Enter' && e.shiftKey) { sendTo(p, '\x1b\r'); return false; }
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'c' && (e.shiftKey || e.metaKey || term.hasSelection())) {
+      e.preventDefault();
+      if (term.hasSelection()) termCopy(p);
+      return false;
+    }
     return true;
+  });
+  // copy-on-select (debounced); silent so dragging doesn't spam toasts
+  let selT; term.onSelectionChange(() => { clearTimeout(selT); selT = setTimeout(() => { const t = term.getSelection(); if (t) copyText(t); }, 150); });
+  // right-click: copy if something is selected, otherwise paste (Shift+right-click keeps the browser menu)
+  $('.pane-body', el).addEventListener('contextmenu', (e) => {
+    if (e.shiftKey) return;
+    e.preventDefault();
+    term.hasSelection() ? termCopy(p) : termPaste(p);
   });
   new ResizeObserver(() => { if (!el.hidden) fitAll(); }).observe($('.pane-body', el));
 
@@ -179,6 +224,8 @@ function addPane(info) {
 
   el.addEventListener('click', async (e) => {
     const a = e.target.closest('button')?.dataset.a;
+    if (a === 'copy') termCopy(p);
+    if (a === 'paste') termPaste(p);
     if (a === 'focus') { focusId = focusId === p.id ? null : p.id; applyLayout(); }
     if (a === 'close') {
       if (!confirm(`Close "${info.title}"? Anything running in it will stop.`)) return;
@@ -190,6 +237,12 @@ function addPane(info) {
   applyLayout();
   connect(p);
   term.focus();
+  try {
+    if (!localStorage.getItem('gf-copy-tip')) {
+      localStorage.setItem('gf-copy-tip', '1');
+      setTimeout(() => toast('Tip: hold Shift (Option on Mac) and drag to select text. The Copy / Paste buttons on each pane always work.'), 1500);
+    }
+  } catch {}
 }
 
 function removePane(id) {

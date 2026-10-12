@@ -231,8 +231,12 @@ API (`backend.leadconnectorhq.com`) authenticated with `GHL_FIREBASE_REFRESH_TOK
 
 **Surface this to the user before using it:**
 - That Firebase token is the user's **entire GHL login** (full account access), not a
-  scoped key. Use it **only on the user's own agency account — never a client's**.
-- To provision workflows for client sub-accounts, prefer **Snapshots** (build once in
+  scoped key. Use it **only on our own agency's accounts**: the Demo account, or a client
+  sub-account our agency manages that the user explicitly names and that has a profile in
+  `~/.config/ghl/profiles/` (currently `demo`, `nmmatc`). The user naming the account is the
+  authorization — don't refuse a managed client sub-account on that basis alone. Writes stay
+  draft-only; never touch live members/contacts.
+- To provision a brand-new client account in bulk, prefer **Snapshots** (build once in
   the UI, sub-accounts inherit it) — no token, no internal API.
 - The internal API has no SLA and may change/break without notice. Workflows are
   created as draft. The CLI prints a one-time warning on use
