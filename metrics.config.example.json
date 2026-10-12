@@ -1,10 +1,23 @@
 {
   "_comment": "Copy to metrics.config.json (gitignored) and fill in the real locationIds. Tokens come from env vars named by tokenEnv — never inline them here.",
+  "_tiles_help": "Each business may set an optional 'tiles' array to override the default (Contacts / Open / Won / Lost). All tile types are read-only GET calls. Types: {label,type:'contacts'} = total contacts; {label,type:'opportunities',status:'open|won|lost'} = opportunities by status; {label,type:'stage',pipelineId,stageId} = opportunities in a pipeline stage (use for trials / active members / past-due when modeled as pipeline stages).",
   "apiBase": "https://services.leadconnectorhq.com",
   "businesses": [
     { "key": "demo",     "name": "Growth Factor (Demo)", "locationId": "<DEMO_LOCATION_ID>",     "tokenEnv": "GHL_DEMO_TOKEN" },
     { "key": "fpmma",    "name": "Furst Place MMA",       "locationId": "<FPMMA_LOCATION_ID>",    "tokenEnv": "GHL_FPMMA_TOKEN" },
     { "key": "fighters", "name": "Fighters Boxing Gym",   "locationId": "<FIGHTERS_LOCATION_ID>", "tokenEnv": "GHL_FIGHTERS_TOKEN" },
-    { "key": "nmma",     "name": "Nashville MMA",         "locationId": "<NMMA_LOCATION_ID>",     "tokenEnv": "GHL_NMMA_TOKEN" }
+    { "key": "nmma",     "name": "Nashville MMA",         "locationId": "<NMMA_LOCATION_ID>",     "tokenEnv": "GHL_NMMA_TOKEN" },
+    {
+      "key": "nmmatc",
+      "name": "Nashville MMA (Memberships)",
+      "locationId": "<NMMATC_LOCATION_ID>",
+      "tokenEnv": "GHL_NMMATC_TOKEN",
+      "tiles": [
+        { "label": "Members",   "type": "contacts" },
+        { "label": "Trials",    "type": "stage", "pipelineId": "<MEMBERSHIPS_PIPELINE_ID>", "stageId": "<TRIAL_STAGE_ID>" },
+        { "label": "Active",    "type": "stage", "pipelineId": "<MEMBERSHIPS_PIPELINE_ID>", "stageId": "<ACTIVE_STAGE_ID>" },
+        { "label": "Past due",  "type": "stage", "pipelineId": "<PASTDUE_PIPELINE_ID>",     "stageId": "<PASTDUE_STAGE_ID>" }
+      ]
+    }
   ]
 }

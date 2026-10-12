@@ -10,9 +10,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadSkills } from './skills.js';
 import { getMetrics } from './metrics.js';
+import { getSeo } from './seo.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const env = process.env;
+// resolved SEO snapshot path, shared by getSeo() and the skill panes (via childEnv) that write it
+if (!env.SEO_SNAPSHOT) env.SEO_SNAPSHOT = path.join(root, 'seo-snapshot.json');
 
 const PORT = Number(env.PORT || 3100);
 const PASSWORD = env.DASHBOARD_PASSWORD;
@@ -193,10 +196,11 @@ app.get('/api/skills', (_req, res) => {
   res.json({ categories, skills: skills.map(({ prompt, cwd, ...s }) => s) });
 });
 
-app.get('/api/metrics', async (_req, res) => {
-  try { res.json({ businesses: await getMetrics(root) }); }
+app.get('/api/metrics', async (req, res) => {
+  try { res.json({ businesses: await getMetrics(root, { fresh: req.query.fresh === '1' }) }); }
   catch (e) { res.status(500).json({ error: 'metrics unavailable' }); }
 });
+app.get('/api/seo', (_req, res) => res.json(getSeo(root)));
 app.get('/api/terminals', (_req, res) => res.json([...terms.values()].map(describe)));
 app.post('/api/terminals', (req, res) => {
   const { kind = 'shell', skill, input = '', attachments = [], cwd: reqCwd } = req.body ?? {};

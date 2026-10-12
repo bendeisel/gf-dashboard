@@ -11,6 +11,8 @@ workspace/
 !.env.example
 .credentials.json
 metrics.config.json
+metrics-history.json
+seo-snapshot.json
 *.pem
 *.key
 
