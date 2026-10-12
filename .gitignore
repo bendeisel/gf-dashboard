@@ -13,6 +13,7 @@ workspace/
 metrics.config.json
 metrics-history.json
 seo-snapshot.json
+seo-data/
 *.pem
 *.key
 

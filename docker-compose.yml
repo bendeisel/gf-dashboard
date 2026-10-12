@@ -15,11 +15,13 @@ services:
       - ./uploads:/uploads
       - ./skills:/app/skills:ro
       - ./metrics.config.json:/app/metrics.config.json:ro     # edit skill .md files on the host; no rebuild needed
+      - ./seo-data:/data/seo        # SEO snapshot lives here so it survives rebuilds; the seo-refresh skill writes it
       # GHL CLI skill + credentials (create on the VPS, see README):
       - ./ghl-cli:/opt/ghl-cli
       - ./ghl-profiles:/home/gf/.config/ghl
     environment:
       GHL_CLI_DIR: /opt/ghl-cli
       CLAUDE_CONFIG_DIR: /home/gf/.config/claude-gf   # terminals' `claude` uses the gf account
+      SEO_SNAPSHOT: /data/seo/seo-snapshot.json       # persistent SEO snapshot path (mounted volume)
 volumes:
   gf_home:
