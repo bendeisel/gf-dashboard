@@ -163,6 +163,10 @@ app.post('/api/logout', (_req, res) => { res.clearCookie('gf_session', { path: '
 // login page + assets are public; everything else needs a session
 app.get('/login', (_req, res) => res.sendFile(path.join(root, 'public', 'login.html')));
 app.get('/app.css', (_req, res) => res.sendFile(path.join(root, 'public', 'app.css')));
+// brand assets used by the (public) login page
+for (const f of ['logo-flame.png', 'logo-wordmark.webp', 'favicon.png', 'apple-touch-icon.png']) {
+  app.get('/' + f, (_req, res) => res.sendFile(path.join(root, 'public', f)));
+}
 app.get('/favicon.ico', (_req, res) => res.status(204).end());
 app.use((req, res, next) => {
   if (authed(req)) return next();
