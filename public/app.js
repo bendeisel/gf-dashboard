@@ -156,6 +156,83 @@ async function termPaste(p) {
   p.term.focus();
 }
 
+/* ---- voice dictation (Wispr Flow, via the server) ---- */
+let VOICE_ON = false; // set at boot from /api/config; gates the mic button
+const voice = { rec: null, chunks: [], stream: null, pane: null, btn: null, timer: null };
+
+function setMic(btn, state) { // state: idle | rec | busy
+  if (!btn) return;
+  btn.classList.toggle('rec', state === 'rec');
+  btn.classList.toggle('busy', state === 'busy');
+  btn.disabled = state === 'busy';
+  btn.title = state === 'rec' ? 'Stop and insert transcription'
+    : state === 'busy' ? 'Transcribing…' : 'Dictate with your voice (Wispr Flow)';
+}
+
+// Decode whatever MediaRecorder gave us, resample to 16kHz mono, and build a 16-bit PCM WAV.
+async function toWav16k(blob) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const tmp = new AC();
+  const decoded = await tmp.decodeAudioData(await blob.arrayBuffer());
+  tmp.close?.();
+  const dstRate = 16000, frames = Math.max(1, Math.ceil(decoded.duration * dstRate));
+  const off = new OfflineAudioContext(1, frames, dstRate);
+  const src = off.createBufferSource(); src.buffer = decoded; src.connect(off.destination); src.start(0);
+  const data = (await off.startRendering()).getChannelData(0);
+  const ab = new ArrayBuffer(44 + data.length * 2), dv = new DataView(ab);
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); dv.setUint32(4, 36 + data.length * 2, true); str(8, 'WAVE'); str(12, 'fmt ');
+  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, dstRate, true); dv.setUint32(28, dstRate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  str(36, 'data'); dv.setUint32(40, data.length * 2, true);
+  let o = 44; for (let i = 0; i < data.length; i++) { const s = Math.max(-1, Math.min(1, data[i])); dv.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true); o += 2; }
+  return ab;
+}
+function abToBase64(ab) {
+  const b = new Uint8Array(ab); let s = ''; const chunk = 0x8000;
+  for (let i = 0; i < b.length; i += chunk) s += String.fromCharCode.apply(null, b.subarray(i, i + chunk));
+  return btoa(s);
+}
+
+async function toggleVoice(p, btn) {
+  if (voice.rec) return stopVoice();            // already recording → stop & transcribe
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return toast('This browser can’t record audio.');
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch { return toast('Allow microphone access to dictate.'); }
+  Object.assign(voice, { stream, chunks: [], pane: p, btn });
+  const rec = new MediaRecorder(stream);
+  voice.rec = rec;
+  rec.ondataavailable = (e) => { if (e.data.size) voice.chunks.push(e.data); };
+  rec.onstop = finishVoice;
+  rec.start();
+  setMic(btn, 'rec');
+  voice.timer = setTimeout(stopVoice, 90000);   // 90s safety cap
+}
+function stopVoice() {
+  clearTimeout(voice.timer);
+  if (voice.rec && voice.rec.state !== 'inactive') voice.rec.stop();
+}
+async function finishVoice() {
+  const { pane, btn, chunks, stream } = voice;
+  stream?.getTracks().forEach((t) => t.stop());
+  voice.rec = null; voice.stream = null;
+  if (!chunks.length) return setMic(btn, 'idle');
+  setMic(btn, 'busy');
+  try {
+    const wav = await toWav16k(new Blob(chunks, { type: chunks[0].type || 'audio/webm' }));
+    const { text } = await api('/api/voice/transcribe', { method: 'POST', body: { audio: abToBase64(wav), language: ['en'] } });
+    const out = (text || '').trim();
+    if (out) { pane.term.paste(out); pane.term.focus(); toast('Inserted dictation — review it, then press Enter.'); }
+    else toast('Didn’t catch any speech. Try again.');
+  } catch (e) {
+    if (/set up|WISPR/i.test(e.message)) { VOICE_ON = false; $$('button[data-a="mic"]').forEach((b) => b.remove()); toast('Voice isn’t set up on the server yet.'); }
+    else toast(e.message || 'Transcription failed.');
+  } finally {
+    setMic(btn, 'idle');
+  }
+}
+
 const KIND_LABEL = { claude: 'Claude', shell: 'Shell', skill: 'Skill' };
 function addPane(info) {
   if (panes.has(info.id)) return;
@@ -166,6 +243,7 @@ function addPane(info) {
   el.innerHTML = `<div class="pane-head"><span class="dot" title="Connected"></span>
     <span class="badge ${esc(kind)}">${esc(badge)}</span>
     <span class="grow title" title="Double-click to rename">${esc(info.title)}</span>
+    ${VOICE_ON ? `<button class="txt mic" data-a="mic" title="Dictate with your voice (Wispr Flow)" aria-label="Dictate"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg></button>` : ''}
     <button class="txt" data-a="copy" title="Copy the selected text, or the whole output if nothing is selected">Copy</button>
     <button class="txt" data-a="paste" title="Paste from your clipboard">Paste</button>
     <button data-a="focus" title="Maximize / restore" aria-label="Maximize">⤢</button>
@@ -224,6 +302,7 @@ function addPane(info) {
 
   el.addEventListener('click', async (e) => {
     const a = e.target.closest('button')?.dataset.a;
+    if (a === 'mic') toggleVoice(p, e.target.closest('button'));
     if (a === 'copy') termCopy(p);
     if (a === 'paste') termPaste(p);
     if (a === 'focus') { focusId = focusId === p.id ? null : p.id; applyLayout(); }
@@ -678,6 +757,7 @@ $('#logout').onclick = async () => { await api('/api/logout', { method: 'POST' }
       $('#homeHi').textContent = `Welcome, ${m.user}`;
     }
   }).catch(() => {});
+  VOICE_ON = await api('/api/config').then((c) => !!c.voice).catch(() => false);
   await Promise.all([loadSkills().catch(() => {}), loadDirs().catch(() => {})]);
   const existing = await api('/api/terminals').catch(() => []);
   existing.forEach(addPane);

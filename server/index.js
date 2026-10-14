@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { loadSkills } from './skills.js';
 import { getMetrics } from './metrics.js';
 import { getSeo } from './seo.js';
+import { transcribe, voiceConfigured } from './voice.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const env = process.env;
@@ -95,7 +96,7 @@ const terms = new Map();
 function childEnv() {
   const e = { ...env, TERM: 'xterm-256color', COLORTERM: 'truecolor' };
   // our own secrets never reach a terminal
-  for (const k of ['DASHBOARD_PASSWORD', 'DASHBOARD_USERS', 'SESSION_SECRET', 'AUTH_DISABLED', 'COOKIE_SECURE']) delete e[k];
+  for (const k of ['DASHBOARD_PASSWORD', 'DASHBOARD_USERS', 'SESSION_SECRET', 'AUTH_DISABLED', 'COOKIE_SECURE', 'WISPR_API_KEY']) delete e[k];
   // metrics tokens (GHL_DEMO_TOKEN, GHL_<GYM>_TOKEN) stay server-side, never in a terminal
   for (const k of Object.keys(e)) if (/^GHL_.*_TOKEN$/.test(k)) delete e[k];
   // strip the Claude Code runtime vars of the server's own parent session, so a
@@ -141,7 +142,10 @@ app.use((req, res, next) => {
   res.set({ 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin' });
   next();
 });
-app.use(express.json({ limit: '256kb' }));
+// Global JSON stays tight; the voice route carries a base64 audio clip and parses its
+// own larger body, so skip it here.
+const jsonSmall = express.json({ limit: '256kb' });
+app.use((req, res, next) => (req.path === '/api/voice/transcribe' ? next() : jsonSmall(req, res, next)));
 
 app.post('/api/login', (req, res) => {
   const ip = clientIp(req);
@@ -175,7 +179,22 @@ app.use((req, res, next) => {
 });
 
 app.get('/api/me', (req, res) => res.json({ ok: true, user: authUser(req) || 'user', multiuser: USERS.size > 0 }));
-app.get('/api/config', (_req, res) => res.json({ workdir: WORKDIR, maxPanes: MAX_PANES }));
+app.get('/api/config', (_req, res) => res.json({ workdir: WORKDIR, maxPanes: MAX_PANES, voice: voiceConfigured() }));
+
+// Voice dictation: browser posts a base64 16kHz-mono WAV; we forward to Wispr Flow and
+// return the transcript. Key stays server-side (see server/voice.js). Behind the auth gate.
+app.post('/api/voice/transcribe', express.json({ limit: '16mb' }), async (req, res) => {
+  const { audio, language } = req.body ?? {};
+  if (typeof audio !== 'string' || !audio) return res.status(400).json({ error: 'No audio.' });
+  try {
+    const { text } = await transcribe({ audioBase64: audio, language });
+    res.json({ text });
+  } catch (e) {
+    if (e.code === 'NO_KEY') return res.status(503).json({ error: 'Voice isn’t set up on the server (WISPR_API_KEY missing).' });
+    console.error('[voice] transcription failed:', e.message, e.status || '', e.detail || '');
+    res.status(502).json({ error: 'Transcription failed — check the server logs.' });
+  }
+});
 
 // project folders the terminals can start in (immediate subdirs of WORKDIR, plus WORKDIR itself)
 app.get('/api/dirs', (_req, res) => {
