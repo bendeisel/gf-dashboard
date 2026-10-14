@@ -257,6 +257,12 @@ select { height: 40px; padding: 0 12px; border: 1px solid var(--border); border-
 .pane-head button.mic.busy { opacity: .55; cursor: progress; }
 @keyframes micpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(179,38,30,.5); } 70% { box-shadow: 0 0 0 6px rgba(179,38,30,0); } }
 @media (prefers-reduced-motion: reduce) { .pane-head button.mic.rec { animation: none; } }
+/* personal / shared control */
+.pane-head button.space { width: auto; padding: 0 9px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #cbb; }
+.pane-head button.space.on { background: rgba(212,169,58,.22); color: var(--gold); }
+.pane-head .space-tag { font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--gold); background: rgba(212,169,58,.14); padding: 3px 8px; border-radius: var(--r-pill); white-space: nowrap; }
+.share-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; user-select: none; white-space: nowrap; }
+.share-toggle input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
 .pane-body { flex: 1; min-height: 0; padding: 6px 4px 4px 8px; }
 .pane.drop::after { content: 'Drop to upload'; position: absolute; inset: 36px 0 0; background: rgba(230,107,58,.18); border: 2px dashed var(--accent); display: grid; place-items: center; color: #fff; font-weight: 800; pointer-events: none; }
 

@@ -52,7 +52,8 @@ dashboard/
 
 **Env vars the server reads** (all optional except the password):
 - `DASHBOARD_PASSWORD` — **required** (unless `AUTH_DISABLED=1`). Login password.
-- `SESSION_SECRET` — HMAC key for login cookies. `openssl rand -hex 32`. Auto-generated if unset (sessions drop on restart).
+- `DASHBOARD_USER_EMAILS` + a mail backend (`RESEND_API_KEY` or `SMTP_*`) — turn on email-code 2FA (see `.env.example`).
+- (`SESSION_SECRET` is no longer used — sessions are server-side and drop on restart by design.)
 - `PORT` — default `3100`.
 - `WORKDIR` — where terminals start and the folder picker lists from. Docker: `/workspace`.
 - `SKILLS_DIR` — default `./skills`.
@@ -233,10 +234,23 @@ container (`docker exec -it gf-dashboard claude`) — the files are then written
 
 ## 9. Security — do not regress
 
-- A login here = a shell inside the container. Long password; login is rate-limited
-  (5 fails / 15 min per IP); cookies are HttpOnly, SameSite=Strict, Secure.
-- Server refuses to start without `DASHBOARD_PASSWORD` (unless `AUTH_DISABLED=1`, which also
-  binds to localhost). It strips `DASHBOARD_PASSWORD`/`SESSION_SECRET` from every terminal's env.
+- A login here = a shell inside the container — so the login is the whole wall. A shell can
+  read the mounted GHL/Claude credential files and the process env, so treat any login as
+  full key access. **Harden the login, don't rely on stripping secrets from terminals.**
+- **Passwords:** store scrypt hashes in `DASHBOARD_USERS`, not plaintext — `node server/hash-password.js 'pw'`.
+  Plaintext still works (legacy) but logs a warning at boot.
+- **2FA (email code):** enforced per user when `DASHBOARD_USER_EMAILS` *and* a mail backend
+  (`RESEND_API_KEY`, or `SMTP_URL`/`SMTP_HOST`) are set. Without them it's password-only (no lockout).
+- **Sessions** are server-side (in `server/sessions.js`): revocable (`/api/logout`, `/api/logout-all`),
+  with an 8h idle timeout + 7d cap. A restart logs everyone out. `SESSION_SECRET` is no longer used.
+- Login is rate-limited **per-IP and per-account** (5 fails / 15 min); `trust proxy = 1` so the
+  client IP can't be spoofed via `X-Forwarded-For`. Code entry is separately throttled.
+- Cookies are HttpOnly, SameSite=Strict, Secure. Responses send a strict **CSP**, `X-Frame-Options`,
+  nosniff, Referrer-Policy, Permissions-Policy, and HSTS (when `COOKIE_SECURE=1`).
+- **Session spaces:** each terminal has an owner; personal sessions are hidden from other users and
+  only the owner can close one. Shared sessions are visible/usable by everyone (WS enforces this too).
+- Server refuses to start without `DASHBOARD_USERS`/`DASHBOARD_PASSWORD` (unless `AUTH_DISABLED=1`, which
+  also binds to localhost). It strips `DASHBOARD_*`, `SESSION_SECRET`, `GHL_*_TOKEN`, `WISPR_API_KEY` from terminals.
 - Container runs as **non-root** (`gf`). Do **not** mount the Docker socket or `/` into it.
 - Never commit/publish: `.env`, the Claude `.credentials.json`, GHL PITs, Firebase tokens.
   These are gitignored; keep them that way.

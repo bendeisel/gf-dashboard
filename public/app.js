@@ -234,6 +234,23 @@ async function finishVoice() {
 }
 
 const KIND_LABEL = { claude: 'Claude', shell: 'Shell', skill: 'Skill' };
+
+// Personal vs shared control in the pane head. Owner sees a toggle; others see a read-only
+// "owner · Shared" tag (and get no close button, so they can't close someone else's work).
+function spaceControl(info) {
+  if (info.mine === false) return `<span class="space-tag" title="Owned by ${esc(info.owner)} — shared with you. Only ${esc(info.owner)} can close it.">${esc(info.owner)} · shared</span>`;
+  const shared = !!info.shared;
+  return `<button class="txt space ${shared ? 'on' : ''}" data-a="share" title="${shared ? 'Shared — everyone on the dashboard can see and use this. Click to make it personal.' : 'Personal — only you can see this. Click to share it.'}">${shared ? 'Shared' : 'Personal'}</button>`;
+}
+async function toggleShare(p) {
+  try {
+    const info = await api(`/api/terminals/${p.id}/share`, { method: 'POST', body: { shared: !p.info.shared } });
+    p.info = info;
+    const btn = $('button[data-a="share"]', p.el);
+    if (btn) { btn.outerHTML = spaceControl(info); }
+    toast(info.shared ? 'Shared — everyone can see this session now.' : 'Personal — only you can see this session now.');
+  } catch (e) { toast(e.message); }
+}
 function addPane(info) {
   if (panes.has(info.id)) return;
   const kind = info.kind || 'shell';
@@ -243,11 +260,12 @@ function addPane(info) {
   el.innerHTML = `<div class="pane-head"><span class="dot" title="Connected"></span>
     <span class="badge ${esc(kind)}">${esc(badge)}</span>
     <span class="grow title" title="Double-click to rename">${esc(info.title)}</span>
+    ${spaceControl(info)}
     ${VOICE_ON ? `<button class="txt mic" data-a="mic" title="Dictate with your voice (Wispr Flow)" aria-label="Dictate"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg></button>` : ''}
     <button class="txt" data-a="copy" title="Copy the selected text, or the whole output if nothing is selected">Copy</button>
     <button class="txt" data-a="paste" title="Paste from your clipboard">Paste</button>
     <button data-a="focus" title="Maximize / restore" aria-label="Maximize">⤢</button>
-    <button data-a="close" title="Close session" aria-label="Close session">✕</button></div><div class="pane-body"></div>`;
+    ${info.mine === false ? '' : '<button data-a="close" title="Close session" aria-label="Close session">✕</button>'}</div><div class="pane-body"></div>`;
   $('#termGrid').append(el);
 
   const term = new Terminal({
@@ -302,6 +320,7 @@ function addPane(info) {
 
   el.addEventListener('click', async (e) => {
     const a = e.target.closest('button')?.dataset.a;
+    if (a === 'share') return toggleShare(p);
     if (a === 'mic') toggleVoice(p, e.target.closest('button'));
     if (a === 'copy') termCopy(p);
     if (a === 'paste') termPaste(p);
@@ -343,9 +362,10 @@ async function newTerminal(body) {
 }
 
 const pickedDir = () => $('#dirPick')?.value || '';
-$('#newShell').onclick = () => newTerminal({ kind: 'shell', cwd: pickedDir() });
-$('#newClaude').onclick = () => newTerminal({ kind: 'claude', cwd: pickedDir() });
-$('#emptyClaude').onclick = () => newTerminal({ kind: 'claude', cwd: pickedDir() });
+const sharedNew = () => $('#shareNew')?.checked || false;
+$('#newShell').onclick = () => newTerminal({ kind: 'shell', cwd: pickedDir(), shared: sharedNew() });
+$('#newClaude').onclick = () => newTerminal({ kind: 'claude', cwd: pickedDir(), shared: sharedNew() });
+$('#emptyClaude').onclick = () => newTerminal({ kind: 'claude', cwd: pickedDir(), shared: sharedNew() });
 $('#quickNew').onclick = () => openPalette();
 $('#homeNewClaude').onclick = () => newTerminal({ kind: 'claude', cwd: pickedDir() });
 $('#homeSkills').onclick = () => (location.hash = '#/skills');

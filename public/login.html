@@ -10,7 +10,8 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 </head>
 <body class="login-body">
-<form id="f" class="login-card">
+<!-- Step 1: username + password -->
+<form id="step1" class="login-card">
   <img class="brand-mark" src="/logo-flame.png" alt="Growth Factor" width="52" height="52">
   <h1>Growth Factor</h1>
   <p class="muted">Command dashboard. Sign in to continue.</p>
@@ -20,21 +21,23 @@
   <label class="field">Password
     <input id="pw" type="password" autocomplete="current-password" required>
   </label>
-  <div id="err" class="err" role="alert"></div>
+  <div id="err1" class="err" role="alert"></div>
   <button class="btn primary" type="submit">Sign in</button>
 </form>
-<script>
-document.getElementById('f').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const err = document.getElementById('err');
-  err.textContent = '';
-  const r = await fetch('/api/login', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: document.getElementById('user').value, password: document.getElementById('pw').value }),
-  });
-  if (r.ok) location.href = '/';
-  else err.textContent = (await r.json().catch(() => ({}))).error || 'Sign in failed.';
-});
-</script>
+
+<!-- Step 2: emailed one-time code -->
+<form id="step2" class="login-card" hidden>
+  <img class="brand-mark" src="/logo-flame.png" alt="Growth Factor" width="52" height="52">
+  <h1>Check your email</h1>
+  <p class="muted">We sent a 6-digit code to <b id="maskedEmail"></b>. It expires in 10 minutes.</p>
+  <label class="field">Sign-in code
+    <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" placeholder="123456" required>
+  </label>
+  <div id="err2" class="err" role="alert"></div>
+  <button class="btn primary" type="submit">Verify &amp; sign in</button>
+  <p class="muted" style="margin-top:12px">Didn’t get it? <a href="#" id="resend">Resend code</a> · <a href="#" id="back">Start over</a></p>
+</form>
+
+<script src="/login.js"></script>
 </body>
 </html>

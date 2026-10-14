@@ -5,10 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Growth Factor Dashboard</title>
 <meta name="description" content="Growth Factor command dashboard — terminals, skills, GHL CLI and live business metrics.">
-<!-- set theme before first paint to avoid a flash -->
-<script>
-(function(){try{var t=localStorage.getItem('gf-theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');}catch(e){}})();
-</script>
+<!-- set theme before first paint to avoid a flash (external for strict CSP) -->
+<script src="/theme-init.js"></script>
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -89,6 +87,7 @@
         </div>
         <div class="grow"></div>
         <label class="dir-pick">Folder <select id="dirPick" title="Folder the new session starts in"></select></label>
+        <label class="share-toggle" title="Personal: only you see it. Shared: visible to everyone on the dashboard."><input type="checkbox" id="shareNew"> Shared</label>
         <button class="btn" id="newShell"><svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6M12 19h8"/></svg>Shell</button>
         <button class="btn primary" id="newClaude"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Claude</button>
       </div>
