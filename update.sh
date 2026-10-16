@@ -13,10 +13,13 @@ if [ -f "$SRC_CLAUDE_CREDS" ] && [ -d claude-gf ]; then
   SRC="$SRC_CLAUDE_CREDS" python3 - <<'PY' 2>/dev/null && { chown 1001:1001 claude-gf/.credentials.json 2>/dev/null || true; chmod 600 claude-gf/.credentials.json 2>/dev/null || true; } || true
 import json, os
 src = os.environ["SRC"]; dst = "claude-gf/.credentials.json"
-root = json.load(open(src))
+root = json.load(open(src)).get("claudeAiOauth") or {}
 gf = json.load(open(dst)) if os.path.exists(dst) else {}
-if "claudeAiOauth" in root:
-    gf["claudeAiOauth"] = root["claudeAiOauth"]   # fresh account token; keeps mcpOAuth intact
+cur = gf.get("claudeAiOauth") or {}
+# Only sync a real login. A logged-out root (empty tokens) must never wipe a working
+# dashboard login, and an older root token must never replace a fresher pane /login.
+if root.get("accessToken") and (not cur.get("accessToken") or (root.get("expiresAt") or 0) >= (cur.get("expiresAt") or 0)):
+    gf["claudeAiOauth"] = root   # fresh account token; keeps mcpOAuth intact
     json.dump(gf, open(dst, "w"))
 PY
 fi
