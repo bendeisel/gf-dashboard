@@ -1,6 +1,6 @@
 ---
 title: Refresh SEO data
-category: Websites
+category: SEO
 description: Pull the latest OpenSEO numbers for every tracked project and update the dashboard's SEO page.
 tags: seo, openseo, refresh, metrics
 input: Leave blank to refresh every tracked project, or name one (e.g. "just Fighters").

@@ -1,6 +1,6 @@
 ---
 title: SEO (OpenSEO)
-category: Websites
+category: SEO
 description: Keyword research, site audits, competitor analysis, local SEO and rank tracking via the OpenSEO agent.
 tags: seo, openseo, local-seo, keywords
 input: Which site/business, and the SEO task (audit, keywords, competitors, local, rank tracking)?
