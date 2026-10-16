@@ -276,6 +276,15 @@ function addPane(info) {
   const fit = new FitAddon.FitAddon();
   term.loadAddon(fit);
   term.open($('.pane-body', el));
+  // GPU (WebGL) renderer for native-terminal speed; fall back to the DOM renderer if
+  // WebGL is unavailable or its context is lost (some remote/VM GPUs drop it).
+  try {
+    if (window.WebglAddon) {
+      const webgl = new WebglAddon.WebglAddon();
+      webgl.onContextLoss(() => { try { webgl.dispose(); } catch {} });
+      term.loadAddon(webgl);
+    }
+  } catch {}
   const p = { id: info.id, el, term, fit, ws: null, info };
   panes.set(info.id, p);
 

@@ -48,6 +48,10 @@ const CLAUDE_MODEL = env.DASHBOARD_CLAUDE_MODEL || 'claude-opus-5-5';
 const modelArgs = CLAUDE_MODEL ? ['--model', CLAUDE_MODEL] : [];
 const MAX_PANES = Number(env.MAX_PANES || 12);
 const SCROLLBACK_BYTES = 200_000;
+// Coalesce pty output: batch bursts into one WS frame instead of one-per-chunk.
+// A short delay + size cap keeps latency imperceptible while killing frame overhead.
+const FLUSH_MS = 8;
+const FLUSH_BYTES = 32 * 1024;
 const SESSION_TTL_MS = 7 * 24 * 3600 * 1000;
 
 // Local testing only: no login, and the server binds to 127.0.0.1 so nothing else can reach it.
@@ -140,6 +144,15 @@ function childEnv() {
   return e;
 }
 
+// Send any buffered pty output to all attached clients as a single frame.
+function flushTerm(t) {
+  if (t.flushTimer) { clearTimeout(t.flushTimer); t.flushTimer = null; }
+  if (!t.pending) return;
+  const out = t.pending;
+  t.pending = '';
+  for (const ws of t.clients) if (ws.readyState === 1) ws.send(out);
+}
+
 function spawnTerm({ kind, title, file, args, cwd, owner = 'local', shared = false }) {
   if (terms.size >= MAX_PANES) throw new Error(`Pane limit reached (${MAX_PANES}). Close one first.`);
   const id = crypto.randomBytes(6).toString('hex');
@@ -147,12 +160,15 @@ function spawnTerm({ kind, title, file, args, cwd, owner = 'local', shared = fal
     name: 'xterm-256color', cols: 120, rows: 32,
     cwd: cwd && fs.existsSync(cwd) ? cwd : WORKDIR, env: childEnv(),
   });
-  const t = { id, title, kind, proc, buf: '', clients: new Set(), created: Date.now(), exited: false, owner, shared: !!shared };
+  const t = { id, title, kind, proc, buf: '', pending: '', flushTimer: null, clients: new Set(), created: Date.now(), exited: false, owner, shared: !!shared };
   proc.onData((d) => {
     t.buf = (t.buf + d).slice(-SCROLLBACK_BYTES);
-    for (const ws of t.clients) if (ws.readyState === 1) ws.send(d);
+    t.pending += d;
+    if (t.pending.length >= FLUSH_BYTES) flushTerm(t);
+    else if (!t.flushTimer) t.flushTimer = setTimeout(() => flushTerm(t), FLUSH_MS);
   });
   proc.onExit(({ exitCode }) => {
+    flushTerm(t); // drain anything buffered before the exit notice
     t.exited = true;
     const msg = `\r\n\x1b[2m[process exited ${exitCode}]\x1b[0m\r\n`;
     t.buf += msg;
@@ -368,6 +384,7 @@ app.delete('/api/terminals/:id', (req, res) => {
   // You can only close your own sessions — never someone else's, even a shared one.
   if (t.owner !== me) return res.status(403).json({ error: 'This session belongs to someone else — only they can close it.' });
   try { t.proc.kill(); } catch {}
+  if (t.flushTimer) clearTimeout(t.flushTimer);
   for (const ws of t.clients) ws.close();
   terms.delete(t.id);
   res.json({ ok: true });
@@ -392,6 +409,7 @@ app.post('/api/upload', upload.array('files', 10), (req, res) =>
 
 app.use('/vendor/xterm', express.static(path.join(root, 'node_modules/@xterm/xterm')));
 app.use('/vendor/xterm-fit', express.static(path.join(root, 'node_modules/@xterm/addon-fit')));
+app.use('/vendor/xterm-webgl', express.static(path.join(root, 'node_modules/@xterm/addon-webgl')));
 app.use(express.static(path.join(root, 'public'), { index: 'index.html' }));
 
 app.use((err, _req, res, _next) => {
@@ -413,7 +431,9 @@ server.on('upgrade', (req, socket, head) => {
     socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
     return socket.destroy();
   }
+  socket.setNoDelay(true); // no Nagle buffering — keystrokes go out immediately (local-terminal feel)
   wss.handleUpgrade(req, socket, head, (ws) => {
+    flushTerm(t); // drain buffered output to existing clients first, so the new client's replay isn't duplicated
     t.clients.add(ws);
     if (t.buf) ws.send(t.buf); // replay scrollback so a refresh picks up where it left off
     ws.on('message', (raw, isBinary) => {
