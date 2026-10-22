@@ -5,4 +5,6 @@ description: List what exists in an account (workflows, calendars, forms) and pr
 tags: ghl, audit, cleanup
 input: Which GHL profile/location should be audited, and what counts as junk?
 ---
-Use the gohighlevel-cli skill (folder in $GHL_CLI_DIR). Do a READ-ONLY audit of the account I name: workflows, calendars, forms, funnels, smart lists, tags. Produce a table of what exists, flag duplicates and test leftovers, and propose a cleanup list. Do not delete or change anything. Note which items the CLI cannot delete (e.g. workflows) so I can remove them by hand.
+Use the gohighlevel-cli skill (folder `$GHL_CLI_DIR`). Do a READ-ONLY audit of the account I name: workflows, calendars, forms, funnels, smart lists, tags. Produce a table of what exists, flag duplicates and test leftovers, and propose a cleanup list. Do not delete or change anything.
+
+**Be precise about what can be removed — check, don't guess.** Read the **Command Groups** table in the skill's SKILL.md (and `./ghl <group> --help`) before saying something can't be deleted. The CLI *can* delete calendars, forms, surveys, funnels, smart lists and email campaigns (several via `--experimental`); it *cannot* delete workflows — there's no delete command (list/enroll/remove only). For anything the CLI genuinely can't remove, say so and I'll do it by hand.
